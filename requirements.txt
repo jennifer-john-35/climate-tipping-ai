@@ -1,0 +1,13 @@
+streamlit
+pandas
+numpy
+scikit-learn
+tensorflow
+plotly
+pydeck
+opencv-python
+pillow
+requests
+tqdm
+prophet
+streamlit-plotly-events
