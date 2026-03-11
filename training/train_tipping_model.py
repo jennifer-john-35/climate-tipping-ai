@@ -19,7 +19,11 @@ df = df.dropna()
 
 # split dataset
 X_train, X_test = train_test_split(df, test_size=0.2, random_state=42)
-
+print("\nDATASET SPLIT")
+print("-------------------")
+print("Total samples:", len(df))
+print("Training samples:", len(X_train))
+print("Testing samples:", len(X_test))
 # model
 model = IsolationForest(
     n_estimators=200,
@@ -49,8 +53,6 @@ print("Accuracy:", accuracy)
 print("Precision:", precision)
 print("Recall:", recall)
 print("F1 Score:", f1)
-
+print("\nTipping point model trained and saved")
 # save model
 joblib.dump(model, "models/tipping_model.pkl")
-
-print("\nTipping point model trained and saved")

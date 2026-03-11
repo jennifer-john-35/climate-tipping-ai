@@ -43,7 +43,11 @@ model.compile(optimizer="adam", loss="mse")
 
 model.fit(X_train, y_train, epochs=20, batch_size=16)
 y_pred = model.predict(X_test)
-
+print("\nDATASET SPLIT")
+print("-------------------")
+print("Total samples:", len(X))
+print("Training samples:", len(X_train))
+print("Testing samples:", len(X_test))
 mse = mean_squared_error(y_test, y_pred)
 mae = mean_absolute_error(y_test, y_pred)
 r2 = r2_score(y_test, y_pred)
@@ -54,7 +58,5 @@ print("Mean Squared Error:", mse)
 print("Mean Absolute Error:", mae)
 print("R2 Score:", r2)
 model.save("models/forecast_model.h5")
-
-joblib.dump(scaler, "models/forecast_scaler.pkl")
-
 print("Forecast model trained")
+joblib.dump(scaler, "models/forecast_scaler.pkl")
