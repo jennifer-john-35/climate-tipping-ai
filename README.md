@@ -21,4 +21,4 @@ Run locally:
 pip install -r requirements.txt
 streamlit run app.py
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://your-app-url.streamlit.app)
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://climate-tipping-ai-cwsywtbeaxn5rnazb4ihar.streamlit.app)
