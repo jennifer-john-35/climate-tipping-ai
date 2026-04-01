@@ -1,267 +1,129 @@
+# app.py — Advanced Climate Tipping Point Detection System
+# Entry point: sidebar navigation, session state init, view routing
+
 import streamlit as st
-import pandas as pd
-import pydeck as pdk
-import plotly.express as px
-import numpy as np
-from datetime import datetime
 
-st.title("🌍 AI Climate Tipping Point Detection System")
-
-# Load risk dataset
-risk_df = pd.read_csv("data/global_risk_scores.csv")
-
-# Ensure numeric risk scores
-risk_df["risk_score"] = pd.to_numeric(risk_df["risk_score"], errors="coerce")
-
-st.markdown("""
-    <style>
-
-    body {
-    background-color:#0a0f1c;
-    color:white;
-    }
-
-    [data-testid="stSidebar"] {
-    background-color:#0a0f1c;
-    }
-
-    </style>
-    """, unsafe_allow_html=True)
+# MUST be the very first Streamlit call
 st.set_page_config(
     page_title="AI Climate Tipping Point Detection",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
-tab1, tab2, tab3 = st.tabs(["Global Scanner", "Risk Index", "Logs"])
+from config.theme_config import GLOBAL_CSS, ACCENT_COLOR
+from inference import ModelLoadError
+from inference.pipeline import InferencePipeline
+from views import (
+    render_global_scanner,
+    render_risk_index,
+    render_cascade_simulator,
+    render_logs,
+    render_analysis_tools,
+)
 
+# ── Inject global CSS ──────────────────────────────────────────────────────────
+st.markdown(GLOBAL_CSS, unsafe_allow_html=True)
 
-# ---------- TAB 1 GLOBAL MAP ----------
-with tab1:
+# ── Session state defaults ─────────────────────────────────────────────────────
+SESSION_DEFAULTS = {
+    "tipping_model": None,
+    "forecast_model": None,
+    "forecast_scaler": None,
+    "scan_results": {},
+    "grid_scores": None,
+    "alert_threshold": 0.75,
+    "last_scan_time": None,
+    "active_view": "Global Scanner",
+    "scan_in_progress": False,
+    "selected_region": None,
+    "comparison_regions": [],
+    "projection_horizon": 30,
+}
+for key, default in SESSION_DEFAULTS.items():
+    if key not in st.session_state:
+        st.session_state[key] = default
 
-    st.subheader("Global Climate Risk Scanner")
+# ── Sidebar ────────────────────────────────────────────────────────────────────
+st.sidebar.markdown(
+    f"""
+    <div style="padding: 1rem 0.5rem 0.5rem 0.5rem;">
+        <div style="color: {ACCENT_COLOR}; font-size: 1.15rem; font-weight: bold;
+                    font-family: 'Courier New', monospace; letter-spacing: 0.08em;">
+            🌍 CLIMATE TIPPING AI
+        </div>
+        <div style="color: #8b949e; font-size: 0.78rem; font-family: 'Courier New', monospace;
+                    margin-top: 0.2rem;">
+            Advanced Detection System
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
-    data = pd.read_csv("data/global_risk_scores.csv")
+st.sidebar.divider()
 
-    # keep only highest risk points
-    data = data.sort_values("risk_score", ascending=False).head(15)
+VIEWS = [
+    "🌍 Global Scanner",
+    "📊 Risk Index",
+    "🌊 Cascade Simulator",
+    "🔧 Analysis Tools",
+    "📋 Logs",
+]
 
-    data["location"] = data["name"]
-    scan = st.button("Run Global Climate Scan")
-    if scan:
+active_view = st.session_state["active_view"]
 
-        progress = st.progress(0)
+for view in VIEWS:
+    # Strip emoji prefix to get the bare view name stored in session state
+    view_name = view.split(" ", 1)[1]
+    is_active = active_view == view_name
 
-        import time
-
-        for i in range(100):
-            time.sleep(0.02)
-            progress.progress(i + 1)
-
-        st.success("Global climate scan complete. Risk zones detected.")
-    fig = px.scatter_geo(
-        data,
-        lat="latitude",
-        lon="longitude",
-        hover_name="name",
-        color="risk_score",
-        size="risk_score",
-        projection="natural earth",
-        color_continuous_scale="Turbo"
-    )
-
-    fig.update_geos(
-        showland=True,
-        landcolor="rgb(40,120,40)",
-        showocean=True,
-        oceancolor="rgb(10,20,50)",
-        showcountries=True,
-        countrycolor="white"
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.subheader("Upload Global Climate Heatmap")
-
-    uploaded = st.file_uploader("Upload heatmap image", type=["png", "jpg", "jpeg"])
-
-    if uploaded:
-
-        import tempfile
-        from utils.heatmap_analyzer import detect_hotspots
-
-        with tempfile.NamedTemporaryFile(delete=False) as tmp:
-            tmp.write(uploaded.read())
-            path = tmp.name
-
-        hotspots = detect_hotspots(path)
-
-        st.write("Detected Risk Zones:", len(hotspots))
-
-        if hotspots:
-
-            lat = [p[0] for p in hotspots]
-            lon = [p[1] for p in hotspots]
-
-            import plotly.express as px
-
-            fig = px.scatter_geo(
-                lat=lat,
-                lon=lon,
-                projection="natural earth"
-            )
-
-            st.plotly_chart(fig, use_container_width=True)
-    st.subheader("Select Location")
-
-    selected_name = st.selectbox(
-        "Select Location",
-        risk_df["name"]
-    )
-
-    selected_row = risk_df[risk_df["name"] == selected_name].iloc[0]
-
-    st.write("### Location Details")
-
-    st.write("Name:", selected_row["name"])
-    st.write("Latitude:", selected_row["latitude"])
-    st.write("Longitude:", selected_row["longitude"])
-    st.write("Risk Score:", round(selected_row["risk_score"], 3))
-    # ---------- Load climate history ----------
-    climate = pd.read_csv("data/climate_training_data.csv")
-
-    # clean dataset
-    climate = climate.apply(pd.to_numeric, errors="coerce")
-    climate = climate.dropna()
-    climate.reset_index(drop=True, inplace=True)
-
-    # ---------- Variance Graph ----------
-    st.subheader("Climate Variance")
-
-    variance = climate.var()
-
-    var_df = variance.reset_index()
-    var_df.columns = ["feature", "variance"]
-
-    fig_var = px.bar(
-        var_df,
-        x="feature",
-        y="variance",
-        title="Climate Signal Variance"
-    )
-
-    st.plotly_chart(fig_var)
-
-    # ---------- Historical Trend ----------
-    st.subheader("Climate History")
-
-    fig_hist = px.line(
-        climate,
-        title="Climate Signals Over Time"
-    )
-
-    st.plotly_chart(fig_hist)
-
-    # ---------- 30 Day Projection ----------
-    st.subheader("30 Day Projection")
-
-    last = climate.tail(30)
-
-    future = last.mean() * 1.02
-
-    proj_df = pd.DataFrame({
-        "day": range(1, 31),
-        "projection": [future.mean()]*30
-    })
-
-    fig_proj = px.line(
-        proj_df,
-        x="day",
-        y="projection",
-        title="Projected Climate Trend"
-    )
-
-    st.plotly_chart(fig_proj)
-
-    # ---------- Risk Explanation ----------
-    st.subheader("AI Risk Explanation")
-
-    risk = selected_row["risk_score"]
-
-    if risk > 0.8:
-        st.error("Extreme climate instability detected. Possible tipping point approaching.")
-
-    elif risk > 0.6:
-        st.warning("High climate variance detected. Monitoring recommended.")
-
+    # Highlight active nav item
+    if is_active:
+        st.sidebar.markdown(
+            f"""
+            <div style="border-left: 3px solid {ACCENT_COLOR};
+                        background: rgba(0,212,255,0.08);
+                        padding: 0.5rem 1rem;
+                        color: {ACCENT_COLOR};
+                        font-family: 'Courier New', monospace;
+                        font-size: 0.9rem;
+                        margin-bottom: 2px;">
+                {view}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
     else:
-        st.success("Low climate tipping risk currently.")
-    temp_var = climate["temp"].var()
-    co2_var = climate["co2"].var()
-    ice_var = climate["sea_ice"].var()
+        if st.sidebar.button(view, key=f"nav_{view_name}", use_container_width=True):
+            st.session_state["active_view"] = view_name
+            st.rerun()
 
-    reasons = []
+st.sidebar.divider()
 
-    if temp_var > 0.5:
-        reasons.append("High temperature anomaly")
+if st.sidebar.button("🗑️ Clear Session", use_container_width=True):
+    for key in ("scan_results", "grid_scores", "last_scan_time",
+                "tipping_model", "forecast_model", "forecast_scaler"):
+        st.session_state[key] = SESSION_DEFAULTS[key]
+    st.rerun()
 
-    if co2_var > 0.2:
-        reasons.append("Rapid CO₂ increase")
+# ── Pipeline (model loading) ───────────────────────────────────────────────────
+try:
+    pipeline = InferencePipeline(st.session_state)
+    pipeline.load_models()
+except ModelLoadError as exc:
+    st.sidebar.error(f"⚠️ Model load failed: {exc}")
+    pipeline = InferencePipeline(st.session_state)
 
-    if ice_var > 0.3:
-        reasons.append("Sea ice loss detected")
+# ── View routing ───────────────────────────────────────────────────────────────
+active_view = st.session_state["active_view"]
 
-    st.write("### AI Risk Explanation")
-
-    for r in reasons:
-        st.write("•", r)
-    # ---------- Logging ----------
-
-        log = pd.DataFrame([{
-            "timestamp": datetime.now(),
-            "latitude": selected_row["latitude"],
-            "longitude": selected_row["longitude"]
-        }])
-
-    log.to_csv("logs/click_log.csv", mode="a", header=False, index=False)
-
-
-# ---------- TAB 2 RISK INDEX ----------
-with tab2:
-
-    st.subheader("Global Climate Risk Ranking")
-
-    data = pd.read_csv("data/global_risk_scores.csv")
-    data = data.sort_values("risk_score", ascending=False).head(15)
-
-    ranked = data.sort_values("risk_score", ascending=False)
-
-    ranked["rank"] = range(1, len(ranked) + 1)
-
-    st.dataframe(
-        ranked[["rank", "name", "latitude", "longitude", "risk_score"]].head(50),
-        use_container_width=True
-    )
-
-    fig = px.histogram(ranked, x="risk_score")
-
-    st.plotly_chart(fig)
-
-
-# ---------- TAB 3 LOG SYSTEM ----------
-with tab3:
-
-    st.subheader("Interaction Logs")
-
-    log_file = "logs/click_log.csv"
-
-    try:
-
-        logs = pd.read_csv("logs/click_log.csv")
-
-        logs["timestamp"] = pd.to_datetime(logs["timestamp"])
-
-        st.dataframe(logs, use_container_width=True)
-
-    except:
-
-        st.info("No interactions recorded yet.")
+if active_view == "Global Scanner":
+    render_global_scanner(pipeline)
+elif active_view == "Risk Index":
+    render_risk_index()
+elif active_view == "Cascade Simulator":
+    render_cascade_simulator()
+elif active_view == "Analysis Tools":
+    render_analysis_tools(pipeline)
+elif active_view == "Logs":
+    render_logs()

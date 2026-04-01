@@ -11,6 +11,9 @@ def load_temperature():
 
     df = df.melt(id_vars=["year"], var_name="month", value_name="temp_anomaly")
 
+    # coerce to numeric — drops "***" placeholder values
+    df["temp_anomaly"] = pd.to_numeric(df["temp_anomaly"], errors="coerce")
+
     df = df.dropna()
 
     return df
@@ -47,6 +50,11 @@ def load_sea_ice():
 
     df.rename(columns={extent_col: "sea_ice_extent"}, inplace=True)
 
+    # coerce to numeric — drops the units header row (e.g. "10^6 sq km")
+    df["sea_ice_extent"] = pd.to_numeric(df["sea_ice_extent"], errors="coerce")
+
+    df = df.dropna()
+
     return df
 
 
@@ -72,19 +80,30 @@ def combine_datasets():
     co2 = load_co2()
     ice = load_sea_ice()
     ocean = load_ocean_heat()
+    rain_raw = load_rainfall()
 
     temp_vals = temp["temp_anomaly"].dropna().values
     co2_vals = co2["co2"].dropna().values
     ice_vals = ice["sea_ice_extent"].dropna().values
     ocean_vals = ocean["ocean_temp"].dropna().values
 
-    min_len = min(len(temp_vals), len(co2_vals), len(ice_vals), len(ocean_vals))
+    # Find the first numeric column in rainfall data as the rainfall value
+    numeric_cols = rain_raw.select_dtypes(include="number").columns
+    if len(numeric_cols) == 0:
+        raise ValueError("No numeric column found in rainfall.csv")
+    rain_vals = rain_raw[numeric_cols[0]].dropna().values
+
+    min_len = min(
+        len(temp_vals), len(co2_vals), len(ice_vals),
+        len(ocean_vals), len(rain_vals)
+    )
 
     df = pd.DataFrame({
         "temp": temp_vals[:min_len],
         "co2": co2_vals[:min_len],
         "sea_ice": ice_vals[:min_len],
-        "ocean_heat": ocean_vals[:min_len]
+        "ocean_heat": ocean_vals[:min_len],
+        "rainfall": rain_vals[:min_len],
     })
 
     return df

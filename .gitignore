@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+env/
+.env
+.venv
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Logs
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Documents / presentations (not source code)
+*.pptx
+*.pdf
+*.docx
+
+# Test/sample assets
+sample2.jpg
+
+# Large model files (optional - remove if you want to track them)
+# models/

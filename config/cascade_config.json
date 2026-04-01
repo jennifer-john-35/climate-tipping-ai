@@ -1,0 +1,25 @@
+{
+  "nodes": [
+    {"id": "arctic_sea_ice",     "label": "Arctic Sea Ice",           "signal": "sea_ice",    "lat": 85,  "lon": 0},
+    {"id": "thermohaline",       "label": "Thermohaline Circulation", "signal": "ocean_heat", "lat": 60,  "lon": -30},
+    {"id": "permafrost_carbon",  "label": "Permafrost Carbon",        "signal": "temp",       "lat": 70,  "lon": 100},
+    {"id": "amazon_rainforest",  "label": "Amazon Rainforest",        "signal": "rainfall",   "lat": -5,  "lon": -60},
+    {"id": "west_antarctic_ice", "label": "W. Antarctic Ice Sheet",   "signal": "temp",       "lat": -80, "lon": -90},
+    {"id": "coral_reefs",        "label": "Coral Reefs",              "signal": "ocean_heat", "lat": -18, "lon": 147},
+    {"id": "monsoon_systems",    "label": "Monsoon Systems",          "signal": "rainfall",   "lat": 20,  "lon": 80},
+    {"id": "boreal_forest",      "label": "Boreal Forest",            "signal": "temp",       "lat": 60,  "lon": 90}
+  ],
+  "edges": [
+    {"source": "arctic_sea_ice",     "target": "thermohaline",      "weight": 0.72},
+    {"source": "arctic_sea_ice",     "target": "permafrost_carbon", "weight": 0.65},
+    {"source": "thermohaline",       "target": "monsoon_systems",   "weight": 0.58},
+    {"source": "thermohaline",       "target": "amazon_rainforest", "weight": 0.45},
+    {"source": "permafrost_carbon",  "target": "arctic_sea_ice",    "weight": 0.60},
+    {"source": "permafrost_carbon",  "target": "boreal_forest",     "weight": 0.55},
+    {"source": "amazon_rainforest",  "target": "monsoon_systems",   "weight": 0.70},
+    {"source": "amazon_rainforest",  "target": "coral_reefs",       "weight": 0.40},
+    {"source": "west_antarctic_ice", "target": "thermohaline",      "weight": 0.80},
+    {"source": "coral_reefs",        "target": "monsoon_systems",   "weight": 0.35},
+    {"source": "boreal_forest",      "target": "permafrost_carbon", "weight": 0.50}
+  ]
+}

@@ -8,7 +8,10 @@ opencv-python
 pillow
 requests
 tqdm
-prophet
 streamlit-plotly-events
 joblib
 reverse_geocoder
+tensorflow
+shap
+scipy
+hypothesis
